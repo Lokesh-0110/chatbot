@@ -1,0 +1,9 @@
+Django>=4.0
+langchain
+langchain-google-genai
+langchain-huggingface  
+sentence-transformers
+chromadb
+python-dotenv
+gunicorn
+tf-keras

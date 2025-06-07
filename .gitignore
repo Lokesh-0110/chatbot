@@ -1,0 +1,20 @@
+# .gitignore
+
+# Python
+__pycache__/
+*.pyc
+
+# Django
+*.log
+*.pot
+*.sqlite3
+
+# Environment
+.env
+
+# Vector DB
+chroma_db/
+
+# IDE
+.idea/
+.vscode/
