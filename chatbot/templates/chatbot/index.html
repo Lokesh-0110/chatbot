@@ -45,7 +45,7 @@
     const chatInput = document.getElementById('chat-input');
     const chatHistory = document.getElementById('chat-history');
 
-    // Function to get the CSRF token from cookies
+    // This function remains the same. It's the standard way to get the CSRF token.
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {
@@ -60,7 +60,6 @@
         }
         return cookieValue;
     }
-    const csrftoken = getCookie('csrftoken');
 
     chatForm.addEventListener('submit', async function(event) {
         event.preventDefault();
@@ -75,31 +74,45 @@
         // Display typing indicator
         const typingIndicator = appendMessage('Typing...', 'bot-message typing-indicator');
         
+        // *** THE MAIN CHANGE IS HERE ***
+        // Get the CSRF token right before making the fetch call.
+        const csrftoken = getCookie('csrftoken');
+
         try {
-            const response = await fetch('', { // The URL is the current page
+            const response = await fetch('', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
+                    'X-CSRFToken': csrftoken // Use the freshly retrieved token
                 },
                 body: JSON.stringify({ question: userQuestion })
             });
 
+            // If the response is a 403 Forbidden, we can give a more specific error
+            if (response.status === 403) {
+                 throw new Error('CSRF validation failed. Please refresh the page and try again.');
+            }
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Try to get a more specific error from the server response if possible
+                const errorData = await response.json().catch(() => null);
+                const errorMessage = errorData?.error || `Server error: ${response.status}`;
+                throw new Error(errorMessage);
             }
 
             const data = await response.json();
-            const botAnswer = data.answer || data.error || 'Sorry, something went wrong.';
             
             // Remove typing indicator and add bot's final answer
             typingIndicator.remove();
+            
+            // Check for an error key in the JSON response from our view
+            const botAnswer = data.error || data.answer || 'Sorry, I encountered an unexpected issue.';
             appendMessage(botAnswer, 'bot-message');
 
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Fetch Error:', error);
             typingIndicator.remove();
-            appendMessage('I seem to be having trouble connecting. Please try again later.', 'bot-message');
+            // Display the specific error message we caught
+            appendMessage(error.message, 'bot-message');
         }
     });
 
@@ -113,10 +126,9 @@
         messageDiv.appendChild(p);
         chatHistory.appendChild(messageDiv);
         
-        // Scroll to the latest message
         chatHistory.scrollTop = chatHistory.scrollHeight;
         
-        return messageDiv; // Return the element for potential modification (like removing the typing indicator)
+        return messageDiv;
     }
 </script>
 

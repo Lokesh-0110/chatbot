@@ -10,6 +10,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.chains import RetrievalQA
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import PromptTemplate
+from langchain_google_genai import HarmBlockThreshold, HarmCategory
+
 
 # Define paths and model names
 DATA_PATH = "data/company_info.txt"
@@ -35,10 +37,9 @@ class ChatbotPipeline:
     def _initialize_qa_chain(self):
         # 1. Initialize the LLM (Google Gemini)
         llm = ChatGoogleGenerativeAI(
-            model="gemini-pro",
+            model="gemini-1.5-flash-latest",
             google_api_key=settings.GOOGLE_API_KEY,
-            temperature=0.2,
-            convert_system_message_to_human=True
+            temperature=0.2
         )
 
         # 2. Initialize Embeddings (Hugging Face)
@@ -79,11 +80,15 @@ class ChatbotPipeline:
         
         return qa_chain
 
+    
     def query(self, user_question):
         if not self.qa_chain:
             return {"error": "The chatbot is not initialized. Please run the data ingestion script."}
             
-        result = self.qa_chain({"query": user_question})
+        # Use .invoke() on the actual chain object here
+        result = self.qa_chain.invoke({"query": user_question})
+        
+        # Return only the answer part of the result dictionary
         return {"answer": result["result"]}
 
 # A single instance to be used by the view
